@@ -27,7 +27,9 @@ import android.content.Intent
 import android.nfc.NfcAdapter
 import android.nfc.TagLostException
 import android.provider.Settings
+import android.util.Log
 import android.view.Menu
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import autodispose2.autoDispose
 import com.itachi1706.cepaslib.CEPASLibBuilder
@@ -43,6 +45,7 @@ import com.itachi1706.cepaslib.app.feature.card.CardScreen
 import com.itachi1706.cepaslib.app.feature.help.HelpScreen
 import com.itachi1706.cepaslib.app.feature.history.HistoryScreen
 import com.itachi1706.cepaslib.app.feature.main.MainActivity.MainActivityComponent
+import com.itachi1706.cepaslib.card.RawCard
 import dagger.Component
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -96,6 +99,8 @@ class HomeScreen : FareBotScreen<HomeScreen.HomeComponent, HomeScreenView>(),
             .observeOn(AndroidSchedulers.mainThread())
             .autoDispose(this)
             .subscribe { card ->
+                // Show tag ID conversion information
+                showTagIdConversionInfo(card)
                 navigator.goTo(CardScreen(card))
             }
 
@@ -135,6 +140,25 @@ class HomeScreen : FareBotScreen<HomeScreen.HomeComponent, HomeScreenView>(),
 
     override fun onNfcErrorButtonClicked() {
         activity.startActivity(Intent(Settings.ACTION_NFC_SETTINGS))
+    }
+
+    private fun showTagIdConversionInfo(card: RawCard<*>) {
+        val tagId = card.tagId()
+        val rawBytes = tagId.bytes()
+        val hexResult = tagId.hex()
+        
+        // Create a detailed conversion message
+        val message = StringBuilder()
+        message.append("Tag ID Conversion:\n")
+        message.append("Raw: ${rawBytes.size} bytes\n")
+        message.append("Hex: $hexResult\n")
+        message.append("(${hexResult.length} hex characters)")
+        
+        // Show as toast
+        Toast.makeText(activity, message.toString(), Toast.LENGTH_LONG).show()
+        
+        // Also log for debugging
+        Log.d("HomeScreen", "Tag ID Conversion: ${rawBytes.size} bytes → $hexResult")
     }
 
     override fun createComponent(parentComponent: MainActivityComponent): HomeComponent =

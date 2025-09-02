@@ -31,6 +31,7 @@ import androidx.annotation.Nullable;
 import com.google.auto.value.AutoValue;
 import com.itachi1706.cepaslib.base.ui.FareBotUiTree;
 import com.itachi1706.cepaslib.base.util.ByteArray;
+import com.itachi1706.cepaslib.base.util.ByteUtils;
 import com.itachi1706.cepaslib.card.Card;
 import com.itachi1706.cepaslib.card.CardType;
 
@@ -79,6 +80,32 @@ public abstract class CEPASCard extends Card {
     public FareBotUiTree getAdvancedUi(Context context) {
         FareBotUiTree.Builder cardUiBuilder = FareBotUiTree.builder(context);
 
+        // Add Tag ID Conversion Information
+        FareBotUiTree.Item.Builder tagIdBuilder = cardUiBuilder.item().title("Tag ID Information");
+        tagIdBuilder.item().title("Tag ID (Hex)").value(getTagId().hex());
+        tagIdBuilder.item().title("Tag ID (Raw Bytes)").value(ByteUtils.getHexString(getTagId().bytes(), "ERROR"));
+        tagIdBuilder.item().title("Tag ID Length").value(getTagId().bytes().length + " bytes");
+        
+        // Add detailed conversion process
+        FareBotUiTree.Item.Builder conversionBuilder = cardUiBuilder.item().title("Tag ID Conversion Process");
+        conversionBuilder.item().title("Algorithm").value("(byte & 0xff) + 0x100 → hex string → substring(1)");
+        
+        // Show step-by-step conversion for each byte
+        byte[] tagIdBytes = getTagId().bytes();
+        for (int i = 0; i < tagIdBytes.length; i++) {
+            byte value = tagIdBytes[i];
+            int unsignedValue = value & 0xff;
+            int withOffset = unsignedValue + 0x100;
+            String hexString = Integer.toString(withOffset, 16);
+            String finalHex = hexString.substring(1);
+            
+            String stepDescription = String.format("Byte %d: %d (0x%02X) → %d → %d → %s → %s",
+                i, value, value, unsignedValue, withOffset, hexString, finalHex);
+            conversionBuilder.item().title("Step " + (i + 1)).value(stepDescription);
+        }
+        
+        conversionBuilder.item().title("Final Result").value(getTagId().hex() + " (" + getTagId().hex().length() + " hex characters)");
+
         FareBotUiTree.Item.Builder pursesUiBuilder = cardUiBuilder.item().title("Purses");
         for (CEPASPurse purse : getPurses()) {
             FareBotUiTree.Item.Builder purseUiBuilder = pursesUiBuilder.item()
@@ -94,6 +121,47 @@ public abstract class CEPASCard extends Card {
             purseUiBuilder.item().title("Autoload Amount").value(purse.getAutoLoadAmount());
             purseUiBuilder.item().title("CAN").value(purse.getCAN());
             purseUiBuilder.item().title("CSN").value(purse.getCSN());
+
+            // Add detailed CAN ID calculation for Purse ID 3
+            if (purse.getId() == 3 && purse.getCAN() != null) {
+                FareBotUiTree.Item.Builder canCalculationBuilder = purseUiBuilder.item().title("CAN ID Calculation Details");
+                
+                byte[] canBytes = purse.getCAN().bytes();
+                if (canBytes != null && canBytes.length == 8) {
+                    // Show CAN bytes in hex format
+                    StringBuilder canHex = new StringBuilder();
+                    for (byte b : canBytes) {
+                        canHex.append(String.format("%02X ", b));
+                    }
+                    canCalculationBuilder.item().title("CAN Bytes (8-15)").value(canHex.toString().trim());
+                    
+                    // Convert to 64-bit integer using byteArrayToLong
+                    long cardSerial = ByteUtils.byteArrayToLong(canBytes);
+                    canCalculationBuilder.item().title("Card Serial (64-bit)").value(String.valueOf(cardSerial));
+                    
+                    // Show algorithm explanation
+                    canCalculationBuilder.item().title("Algorithm").value("(byte & 0xFF) << shift, where shift = (length - 1 - i) * 8");
+                    
+                    // Show step-by-step calculation
+                    long total = 0;
+                    for (int i = 0; i < canBytes.length; i++) {
+                        int shift = (canBytes.length - 1 - i) * 8;
+                        long byteValue = (long) (canBytes[i] & 0x000000FF) << shift;
+                        total += byteValue;
+                        
+                        String stepDescription = String.format("Byte %d: 0x%02X (%d) << %d = %d", 
+                            i, canBytes[i] & 0xFF, canBytes[i] & 0xFF, shift, byteValue);
+                        canCalculationBuilder.item().title("Step " + (i + 1)).value(stepDescription);
+                    }
+                    
+                    // Show final results
+                    canCalculationBuilder.item().title("Total").value(String.valueOf(total));
+                    canCalculationBuilder.item().title("Hex").value(String.format("0x%016X", total));
+                    canCalculationBuilder.item().title("Binary").value(Long.toBinaryString(total));
+                } else {
+                    canCalculationBuilder.item().title("Error").value("CAN data is null or not 8 bytes");
+                }
+            }
 
             FareBotUiTree.Item.Builder transactionUiBuilder
                     = cardUiBuilder.item().title("Last Transaction Information");

@@ -19,7 +19,7 @@ repositories {
 	mavenCentral()
 }
 …
-dependencies {
+dependencies {  
   implementation 'com.itachi1706.cepaslib:cepaslib:<latest-version>' // See badge for latest version
 }
 ```

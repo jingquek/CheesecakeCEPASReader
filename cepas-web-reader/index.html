@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CEPAS Purse 3 CAN ID Reader</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>CEPAS Purse 3 CAN ID Reader</h1>
+            <p>Scan your CEPAS card to extract the CAN ID from Purse 3</p>
+        </header>
+
+        <main>
+            <div class="scan-section">
+                <button id="scanButton" class="scan-button">
+                    <span class="button-text">Start NFC Scan</span>
+                    <span class="button-icon">📱</span>
+                </button>
+                <div id="status" class="status">Ready to scan CEPAS card</div>
+            </div>
+
+            <div class="results-section" id="resultsSection" style="display: none;">
+                <h2>Scan Results</h2>
+                
+                <div class="result-card">
+                    <h3>Purse 3 Information</h3>
+                    <div id="purseInfo" class="info-grid"></div>
+                </div>
+
+                <div class="result-card">
+                    <h3>CAN ID Data</h3>
+                    <div class="can-data">
+                        <div class="data-row">
+                            <label>CAN Bytes (8-15):</label>
+                            <span id="canBytes" class="hex-data"></span>
+                        </div>
+                        <div class="data-row">
+                            <label>Card Serial (64-bit):</label>
+                            <span id="cardSerial" class="number-data"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-card">
+                    <h3>Calculation Details</h3>
+                    <div id="calculationDetails" class="calculation-details"></div>
+                </div>
+
+                <div class="result-card">
+                    <h3>Raw Data</h3>
+                    <div class="raw-data">
+                        <label>Purse 3 Raw Bytes:</label>
+                        <pre id="rawData" class="hex-dump"></pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="error-section" id="errorSection" style="display: none;">
+                <div class="error-card">
+                    <h3>Error</h3>
+                    <div id="errorMessage" class="error-message"></div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>This application reads CEPAS Purse 3 data using Web NFC API</p>
+            <p>Requires HTTPS and NFC-enabled device</p>
+        </footer>
+    </div>
+
+    <script src="cepas-protocol.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

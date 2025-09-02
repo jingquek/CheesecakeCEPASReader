@@ -66,6 +66,10 @@
             android:text="@string/balance" />
     </LinearLayout>
 
+
+
+
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler"
         android:layout_width="match_parent"
