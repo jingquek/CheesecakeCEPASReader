@@ -637,6 +637,36 @@ public class CANScannerActivity extends Activity {
         
         rawData.append("└─────────────────────────────────────────────────────────────────────────────────────────────────────┘\n\n");
         
+        // NFC Scan Commands and Details
+        rawData.append("NFC SCAN COMMANDS & DETAILS:\n");
+        rawData.append("┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐\n");
+        rawData.append("│ Command Sequence for CEPAS Card Reading:                                                         │\n");
+        rawData.append("├─────────────────────────────────────────────────────────────────────────────────────────────────────┤\n");
+        rawData.append("│ 1. SELECT CEPAS APPLICATION                                                                      │\n");
+        rawData.append("│    Command: 00 A4 00 00 02 40 00                                                               │\n");
+        rawData.append("│    ├─ CLA: 00 (ISO 7816-4 standard)                                                             │\n");
+        rawData.append("│    ├─ INS: A4 (SELECT FILE command)                                                             │\n");
+        rawData.append("│    ├─ P1:  00 (Select by name)                                                                  │\n");
+        rawData.append("│    ├─ P2:  00 (First or only occurrence)                                                        │\n");
+        rawData.append("│    ├─ Lc:  02 (Length of application ID)                                                        │\n");
+        rawData.append("│    └─ Data: 40 00 (CEPAS Application ID)                                                        │\n");
+        rawData.append("│                                                                                                 │\n");
+        rawData.append("│ 2. READ PURSE 3 DATA                                                                            │\n");
+        rawData.append("│    Command: 90 32 03 00 01 00                                                                  │\n");
+        rawData.append("│    ├─ CLA: 90 (CEPAS specific class)                                                            │\n");
+        rawData.append("│    ├─ INS: 32 (READ PURSE command)                                                              │\n");
+        rawData.append("│    ├─ P1:  03 (Purse ID = 3)                                                                   │\n");
+        rawData.append("│    ├─ P2:  00 (Read purse data)                                                                 │\n");
+        rawData.append("│    ├─ Lc:  01 (Length of data field)                                                            │\n");
+        rawData.append("│    └─ Data: 00 (Read from beginning)                                                            │\n");
+        rawData.append("│                                                                                                 │\n");
+        rawData.append("│ Protocol Details:                                                                               │\n");
+        rawData.append("│ • CEPAS uses ISO 7816-4 APDU commands                                                           │\n");
+        rawData.append("│ • Application ID: 40 00 (CEPAS standard)                                                        │\n");
+        rawData.append("│ • Purse 3 contains the main transit purse data                                                 │\n");
+        rawData.append("│ • Response includes 64+ bytes of purse information                                              │\n");
+        rawData.append("└─────────────────────────────────────────────────────────────────────────────────────────────────────┘\n\n");
+        
         // CAN ID extraction summary
         rawData.append("CAN ID EXTRACTION SUMMARY:\n");
         rawData.append("┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐\n");
