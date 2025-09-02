@@ -1,9 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Primary: ISO-DEP for CEPAS cards -->
     <tech-list>
         <tech>android.nfc.tech.IsoDep</tech>
     </tech-list>
+    
+    <!-- Secondary: NfcF for FeliCa compatibility -->
     <tech-list>
         <tech>android.nfc.tech.NfcF</tech>
+    </tech-list>
+    
+    <!-- Tertiary: NfcA for Type A cards -->
+    <tech-list>
+        <tech>android.nfc.tech.NfcA</tech>
+    </tech-list>
+    
+    <!-- Quaternary: NfcB for Type B cards -->
+    <tech-list>
+        <tech>android.nfc.tech.NfcB</tech>
+    </tech-list>
+    
+    <!-- Quinary: NfcV for Type V cards -->
+    <tech-list>
+        <tech>android.nfc.tech.NfcV</tech>
     </tech-list>
 </resources>

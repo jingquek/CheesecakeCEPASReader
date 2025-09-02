@@ -17,12 +17,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+        
         <activity
             android:name=".RedirectAcrtivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
@@ -33,19 +33,26 @@
             android:label="CEPAS Purse 3 CAN Scanner"
             android:launchMode="singleTop"
             android:taskAffinity=""
-            android:excludeFromRecents="false">
-            <intent-filter>
+            android:excludeFromRecents="false"
+            android:screenOrientation="portrait">
+            
+            <!-- NFC Intent Filters for Android 14 compatibility -->
+            <intent-filter android:priority="1">
                 <action android:name="android.nfc.action.TECH_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-            <intent-filter>
+            
+            <intent-filter android:priority="2">
                 <action android:name="android.nfc.action.TAG_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
-            <intent-filter>
+            
+            <intent-filter android:priority="3">
                 <action android:name="android.nfc.action.NDEF_DISCOVERED" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
+            
+            <!-- Tech list for ISO-DEP support -->
             <meta-data
                 android:name="android.nfc.action.TECH_DISCOVERED"
                 android:resource="@xml/filter_nfc" />

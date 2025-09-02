@@ -10,13 +10,17 @@ I've created a dedicated CAN Scanner page that scans CEPAS cards, extracts the C
 
 **Features**:
 - NFC card scanning functionality
+- **Displays NFC commands sent to retrieve Purse 3 data**
 - Extracts CAN bytes 8-15 from purse data
 - Converts CAN bytes to 64-bit integer using `ByteUtils.byteArrayToLong()`
 - Displays detailed calculation steps
 - Shows both hex representation and decimal result
+- **Explains why CEPAS protocol is needed vs standard 4-byte UID**
 
 **Key Methods**:
 - `scanCard(Tag tag)`: Handles NFC tag detection and CEPAS card reading
+- `displayNfcCommands()`: Shows the NFC command sequence used
+- `updateCommandsDisplaySuccess()`: Updates commands display on successful scan
 - `extractAndConvertCAN(byte[] canBytes)`: Extracts and converts CAN bytes
 - `showCalculation(byte[] canBytes, long result)`: Shows step-by-step calculation
 
@@ -26,6 +30,8 @@ I've created a dedicated CAN Scanner page that scans CEPAS cards, extracts the C
 **UI Components**:
 - Scan button
 - Status display
+- **NFC commands display (shows protocol sequence)**
+- Purse 3 information display
 - CAN bytes display (hex format)
 - Card serial display (64-bit decimal)
 - Detailed calculation breakdown
@@ -46,6 +52,39 @@ I've created a dedicated CAN Scanner page that scans CEPAS cards, extracts the C
 
 #### AndroidManifest.xml
 - Added CANScannerActivity declaration
+
+## Enhanced Display Features
+
+### NFC Commands Display
+The app now shows the exact NFC commands sent to retrieve Purse 3 data:
+
+**1. SELECT CEPAS APPLICATION**
+```
+Command: 00 A4 00 00 02 40 00
+├─ CLA: 00 (ISO 7816-4 standard)
+├─ INS: A4 (SELECT FILE command)  
+├─ P1:  00 (Select by name)
+├─ P2:  00 (First or only occurrence)
+├─ Lc:  02 (Length of application ID)
+└─ Data: 40 00 (CEPAS Application ID)
+```
+
+**2. READ PURSE 3 DATA**
+```
+Command: 90 32 03 00 01 00
+├─ CLA: 90 (CEPAS specific class)
+├─ INS: 32 (READ PURSE command)
+├─ P1:  03 (Purse ID = 3)
+├─ P2:  00 (Read purse data)
+├─ Lc:  01 (Length of data field)
+└─ Data: 00 (Read from beginning)
+```
+
+**Why CEPAS vs Standard UID?**
+- Standard NFC UID: Only 4 bytes (basic tag identifier)
+- CEPAS CAN: 8 bytes (full card account number)
+- CEPAS protocol required for accessing purse data
+- UID alone cannot provide transit account information
 
 ## How It Works
 
@@ -101,9 +140,14 @@ Total: 2305843009213693952
 
 1. **Launch the app** - Shows menu with two options
 2. **Select "CAN Scanner"** - Opens the CAN scanner interface
-3. **Tap "Scan CEPAS Card"** - Prepares for NFC scanning
+3. **Tap "Scan CEPAS Card"** - Prepares for NFC scanning and shows command sequence
 4. **Place CEPAS card near NFC reader** - Automatically scans the card
-5. **View results** - See CAN bytes, 64-bit serial, and calculation details
+5. **View results** - See:
+   - **NFC commands sent** (with success/failure status)
+   - **Purse 3 information** (balance, dates, etc.)
+   - **CAN bytes** (8-15 in hex format)
+   - **64-bit card serial number**
+   - **Step-by-step calculation details**
 
 ## Technical Details
 

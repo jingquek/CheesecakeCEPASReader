@@ -94,7 +94,98 @@ byte[] purseBuff = sendRequest((byte) 0x32, (byte) (purseId), (byte) 0, (byte) 0
 
 **NFC Commands:**
 - **Select File**: `00 A4 00 00 02 40 00` (Select CEPAS application)
-- **Read Purse**: `32 [purse_id] 00 00 01 00` (Read specific purse data)
+- **Read Purse 3**: `90 32 03 00 01 00` (Read Purse 3 data specifically)
+
+**Detailed Command Structure:**
+
+**1. SELECT CEPAS APPLICATION**
+```
+Command: 00 A4 00 00 02 40 00
+├─ CLA: 00 (ISO 7816-4 standard)
+├─ INS: A4 (SELECT FILE command)
+├─ P1:  00 (Select by name)
+├─ P2:  00 (First or only occurrence)
+├─ Lc:  02 (Length of application ID)
+└─ Data: 40 00 (CEPAS Application ID)
+```
+
+**2. READ PURSE 3 DATA**
+```
+Command: 90 32 03 00 01 00
+├─ CLA: 90 (CEPAS specific class)
+├─ INS: 32 (READ PURSE command)
+├─ P1:  03 (Purse ID = 3)
+├─ P2:  00 (Read purse data)
+├─ Lc:  01 (Length of data field)
+└─ Data: 00 (Read from beginning)
+```
+
+**Why Not Just Standard NFC UID?**
+- Standard NFC UID scan: Only 4 bytes (basic tag identifier)
+- CEPAS CAN: 8 bytes (full card account number)
+- CEPAS protocol required for accessing purse data
+- UID alone cannot provide transit account information
+
+## Complete Purse 3 Response Structure
+
+### Full 64-Byte Response Layout
+When reading Purse 3, the CEPAS card returns a complete 64-byte response (minimum) plus status codes:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                              FULL PURSE 3 DATA (64 bytes)                                        │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Byte │ 0   │ 1   │ 2   │ 3   │ 4   │ 5   │ 6   │ 7   │ 8   │ 9   │ 10  │ 11  │ 12  │ 13  │ 14  │ 15  │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Data │ XX  │ XX  │ XXX │ XXX │ XXX │ XXX │ XXX │ XXX │████████████████████████████████████████████│
+│ Field│ Ver │Status│Balance│Balance│Balance│Auto │Auto │Auto │        CAN ID (8-15)        │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+### Complete Field Breakdown
+```
+Byte Position | Field Name           | Size | Description                    | Sample Value
+--------------|---------------------|------|--------------------------------|------------------
+0             | CEPAS Version       | 1    | Protocol version              | 01
+1             | Purse Status        | 1    | Current status                | 00
+2-4           | Purse Balance       | 3    | Current balance (signed)      | 00 00 50
+5-7           | Auto Load Amount    | 3    | Auto-reload amount (signed)   | 00 00 00
+8-15          | CAN (Card Account)  | 8    | **CAN ID - 8 bytes**         | 1C 61 E9 59 00 00 00 00
+16-23         | CSN (Card Serial)   | 8    | Card serial number           | 12 34 56 78 9A BC DE F0
+24-25         | Purse Expiry Date   | 2    | Expiry date (days from 1995) | 00 00
+26-27         | Purse Creation Date | 2    | Creation date (days from 1995)| 00 00
+28-31         | Last Credit TRP     | 4    | Last credit transaction      | 00 00 00 00
+32-39         | Credit Header       | 8    | Credit transaction header    | 00 00 00 00 00 00 00 00
+40            | Logfile Record Count| 1    | Number of transaction records| 00
+41            | Issuer Data Length  | 1    | Length of issuer data        | 00
+42-45         | Last Transaction TRP| 4    | Last transaction reference   | 00 00 00 00
+46-61         | Last Transaction    | 16   | Last transaction record      | 00 00 00 00 00 00 00 00...
+62+           | Issuer Specific Data| var  | Variable length issuer data | ...
+```
+
+### CAN ID Extraction (Bytes 8-15)
+The **CAN ID is specifically highlighted** in the response as it represents the core transit identifier:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                    CAN ID LOCATION (Bytes 8-15)                                                  │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ Byte │ 8   │ 9   │ 10  │ 11  │ 12  │ 13  │ 14  │ 15  │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ CAN  │████████████████████████████████████████████████████████████████████████████████████████████│
+│ Data │████████████████████████████████████████████████████████████████████████████████████████████│
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
+```
+
+**Sample CAN Data**: `1C 61 E9 59 00 00 00 00`
+- **Byte 8**: 0x1C (28)
+- **Byte 9**: 0x61 (97)  
+- **Byte 10**: 0xE9 (233)
+- **Byte 11**: 0x59 (89)
+- **Byte 12**: 0x00 (0)
+- **Byte 13**: 0x00 (0)
+- **Byte 14**: 0x00 (0)
+- **Byte 15**: 0x00 (0)
 
 ## CAN ID Calculation Process
 

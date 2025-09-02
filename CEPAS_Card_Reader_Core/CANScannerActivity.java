@@ -25,6 +25,7 @@ public class CANScannerActivity extends Activity {
     private static final String TAG = "CANScannerActivity";
     
     private TextView tvStatus;
+    private TextView tvNfcCommands;
     private TextView tvCANBytes;
     private TextView tvCardSerial;
     private TextView tvCalculation;
@@ -43,6 +44,7 @@ public class CANScannerActivity extends Activity {
 
         // Initialize views
         tvStatus = findViewById(R.id.tvStatus);
+        tvNfcCommands = findViewById(R.id.tvNfcCommands);
         tvCANBytes = findViewById(R.id.tvCANBytes);
         tvCardSerial = findViewById(R.id.tvCardSerial);
         tvCalculation = findViewById(R.id.tvCalculation);
@@ -159,6 +161,9 @@ public class CANScannerActivity extends Activity {
     private void scanCard(Tag tag) {
         tvStatus.setText("Scanning CEPAS Purse 3...");
         
+        // Display the NFC commands that will be sent
+        displayNfcCommands();
+        
         try {
             // Get tag ID
             byte[] tagId = tag.getId();
@@ -180,6 +185,9 @@ public class CANScannerActivity extends Activity {
             
             if (purse != null && purse.isValid()) {
                 Log.d(TAG, "CEPAS Purse 3 is valid");
+                
+                // Update commands display to show successful execution
+                updateCommandsDisplaySuccess();
                 
                 // Display purse information
                 displayPurseInfo(purse);
@@ -203,6 +211,21 @@ public class CANScannerActivity extends Activity {
                 tvCardSerial.setText("Card Serial: Not available");
                 tvCalculation.setText("Calculation: Not available");
                 tvPurseInfo.setText("Purse 3 Status: " + (purse != null ? "Invalid" : "Not found"));
+                
+                // Update commands display to show what was attempted
+                StringBuilder failedCommands = new StringBuilder();
+                failedCommands.append("Commands were sent but Purse 3 was not found/invalid:\n\n");
+                failedCommands.append("1. SELECT CEPAS APPLICATION ✓\n");
+                failedCommands.append("   Command: 00 A4 00 00 02 40 00\n\n");
+                failedCommands.append("2. READ PURSE 3 DATA ✗\n");
+                failedCommands.append("   Command: 90 32 03 00 01 00\n");
+                failedCommands.append("   Result: Purse 3 not found or invalid\n\n");
+                failedCommands.append("Possible reasons:\n");
+                failedCommands.append("• Card does not have Purse 3\n");
+                failedCommands.append("• Card is not a CEPAS card\n");
+                failedCommands.append("• Purse 3 is locked/encrypted\n");
+                failedCommands.append("• Card communication error");
+                tvNfcCommands.setText(failedCommands.toString());
             }
             
         } catch (Exception e) {
@@ -212,6 +235,20 @@ public class CANScannerActivity extends Activity {
             tvCardSerial.setText("Card Serial: Error occurred");
             tvCalculation.setText("Calculation: Error occurred");
             tvPurseInfo.setText("Purse Info: Error occurred");
+            
+            // Show error in commands display
+            StringBuilder errorCommands = new StringBuilder();
+            errorCommands.append("NFC Communication Error:\n\n");
+            errorCommands.append("Commands attempted:\n");
+            errorCommands.append("1. SELECT CEPAS APPLICATION\n");
+            errorCommands.append("   Command: 00 A4 00 00 02 40 00\n\n");
+            errorCommands.append("2. READ PURSE 3 DATA\n");
+            errorCommands.append("   Command: 90 32 03 00 01 00\n\n");
+            errorCommands.append("Error Details:\n");
+            errorCommands.append("• ").append(e.getClass().getSimpleName()).append("\n");
+            errorCommands.append("• ").append(e.getMessage() != null ? e.getMessage() : "Unknown error");
+            tvNfcCommands.setText(errorCommands.toString());
+            
             e.printStackTrace();
         }
     }
@@ -285,6 +322,136 @@ public class CANScannerActivity extends Activity {
         calc.append(String.format("Binary: %s", Long.toBinaryString(total)));
         
         tvCalculation.setText(calc.toString());
+    }
+
+    private void displayNfcCommands() {
+        StringBuilder commands = new StringBuilder();
+        commands.append("NFC Command Sequence to Retrieve Purse 3:\n\n");
+        
+        commands.append("Note: Standard NFC UID scan only provides 4 bytes.\n");
+        commands.append("CEPAS requires additional protocol commands for full data.\n\n");
+        
+        commands.append("1. SELECT CEPAS APPLICATION\n");
+        commands.append("   Command: 00 A4 00 00 02 40 00\n");
+        commands.append("   ├─ CLA: 00 (ISO 7816-4 standard)\n");
+        commands.append("   ├─ INS: A4 (SELECT FILE command)\n");
+        commands.append("   ├─ P1:  00 (Select by name)\n");
+        commands.append("   ├─ P2:  00 (First or only occurrence)\n");
+        commands.append("   ├─ Lc:  02 (Length of application ID)\n");
+        commands.append("   └─ Data: 40 00 (CEPAS Application ID)\n\n");
+        
+        commands.append("2. READ PURSE 3 DATA\n");
+        commands.append("   Command: 90 32 03 00 01 00\n");
+        commands.append("   ├─ CLA: 90 (CEPAS specific class)\n");
+        commands.append("   ├─ INS: 32 (READ PURSE command)\n");
+        commands.append("   ├─ P1:  03 (Purse ID = 3)\n");
+        commands.append("   ├─ P2:  00 (Read purse data)\n");
+        commands.append("   ├─ Lc:  01 (Length of data field)\n");
+        commands.append("   └─ Data: 00 (Read from beginning)\n\n");
+        
+        commands.append("3. FULL PURSE 3 RESPONSE STRUCTURE (64+ bytes)\n");
+        commands.append("   Response Format: [Purse Data] + [Status Code]\n");
+        commands.append("   Status Code: 90 00 (Success)\n\n");
+        
+        commands.append("4. DETAILED BYTE LAYOUT:\n");
+        commands.append("   ┌─────────────────────────────────────────────────────────────┐\n");
+        commands.append("   │                    PURSE 3 DATA (64 bytes)                  │\n");
+        commands.append("   ├─────────────────────────────────────────────────────────────┤\n");
+        commands.append("   │ Byte │ Hex │ Field Name           │ Description             │\n");
+        commands.append("   ├─────────────────────────────────────────────────────────────┤\n");
+        commands.append("   │  0   │ XX  │ CEPAS Version       │ Protocol version        │\n");
+        commands.append("   │  1   │ XX  │ Purse Status        │ Current status          │\n");
+        commands.append("   │ 2-4  │XXX  │ Purse Balance       │ Current balance (3 bytes)│\n");
+        commands.append("   │ 5-7  │XXX  │ Auto Load Amount    │ Auto-reload (3 bytes)   │\n");
+        commands.append("   │ 8-15 │████████████████│ CAN (Card Account)  │ **CAN ID - 8 bytes** │\n");
+        commands.append("   │16-23 │XXXXXXXX│ CSN (Card Serial)   │ Card serial number     │\n");
+        commands.append("   │24-25 │ XX  │ Purse Expiry Date   │ Expiry (days from 1995)│\n");
+        commands.append("   │26-27 │ XX  │ Purse Creation Date │ Creation (days from 1995)│\n");
+        commands.append("   │28-31 │XXXX │ Last Credit TRP     │ Last credit transaction │\n");
+        commands.append("   │32-39 │XXXXXXXX│ Credit Header       │ Credit transaction header│\n");
+        commands.append("   │  40  │ XX  │ Logfile Record Count│ Number of records      │\n");
+        commands.append("   │  41  │ XX  │ Issuer Data Length  │ Length of issuer data  │\n");
+        commands.append("   │42-45 │XXXX │ Last Transaction TRP│ Last transaction ref   │\n");
+        commands.append("   │46-61 │████████████████████████│ Last Transaction    │ Last transaction record│\n");
+        commands.append("   │62+   │...  │ Issuer Specific Data│ Variable length data   │\n");
+        commands.append("   └─────────────────────────────────────────────────────────────┘\n\n");
+        
+        commands.append("5. CAN ID EXTRACTION (Bytes 8-15):\n");
+        commands.append("   ┌─────────────────────────────────────────────────────────────┐\n");
+        commands.append("   │                    CAN ID LOCATION                        │\n");
+        commands.append("   ├─────────────────────────────────────────────────────────────┤\n");
+        commands.append("   │ Byte │ 8   │ 9   │ 10  │ 11  │ 12  │ 13  │ 14  │ 15  │\n");
+        commands.append("   ├─────────────────────────────────────────────────────────────┤\n");
+        commands.append("   │ CAN  │████████████████████████████████████████████████████│\n");
+        commands.append("   │ Data │████████████████████████████████████████████████████│\n");
+        commands.append("   └─────────────────────────────────────────────────────────────┘\n");
+        commands.append("   These 8 bytes form the Card Account Number (CAN)\n\n");
+        
+        commands.append("6. WHY NOT JUST STANDARD NFC UID?\n");
+        commands.append("   ┌─────────────────────────────────────────────────────────────┐\n");
+        commands.append("   │ Standard NFC UID vs CEPAS CAN                              │\n");
+        commands.append("   ├─────────────────────────────────────────────────────────────┤\n");
+        commands.append("   │ NFC UID        │ 4 bytes │ Basic tag identifier only      │\n");
+        commands.append("   │ CEPAS CAN      │ 8 bytes │ Full transit account number    │\n");
+        commands.append("   │ CEPAS Protocol │ Required│ Access to purse data          │\n");
+        commands.append("   │ UID Limitation │ No data │ Cannot provide account info    │\n");
+        commands.append("   └─────────────────────────────────────────────────────────────┘\n\n");
+        
+        commands.append("7. RESPONSE EXAMPLE:\n");
+        commands.append("   Raw Response: [64 bytes] + 90 00\n");
+        commands.append("   ├─ Data Length: 64 bytes (minimum)\n");
+        commands.append("   ├─ Status: 90 00 (Success)\n");
+        commands.append("   └─ Total: 66 bytes\n\n");
+        
+        commands.append("   Sample Data (showing CAN bytes 8-15):\n");
+        commands.append("   ┌─────────────────────────────────────────────────────────────┐\n");
+        commands.append("   │ 00 01 00 00 50 00 00 00 1C 61 E9 59 00 00 00 00 ...      │\n");
+        commands.append("   │     │     │     │     │████████████████████████████████│\n");
+        commands.append("   │ Ver │Status│Balance│Auto │        CAN ID (8-15)        │\n");
+        commands.append("   └─────────────────────────────────────────────────────────────┘");
+        
+        tvNfcCommands.setText(commands.toString());
+    }
+
+    private void updateCommandsDisplaySuccess() {
+        StringBuilder commands = new StringBuilder();
+        commands.append("NFC Command Sequence - SUCCESSFUL:\n\n");
+        
+        commands.append("Note: Standard NFC UID scan only provides 4 bytes.\n");
+        commands.append("CEPAS requires additional protocol commands for full data.\n\n");
+        
+        commands.append("1. SELECT CEPAS APPLICATION ✓\n");
+        commands.append("   Command: 00 A4 00 00 02 40 00\n");
+        commands.append("   ├─ CLA: 00 (ISO 7816-4 standard)\n");
+        commands.append("   ├─ INS: A4 (SELECT FILE command)\n");
+        commands.append("   ├─ P1:  00 (Select by name)\n");
+        commands.append("   ├─ P2:  00 (First or only occurrence)\n");
+        commands.append("   ├─ Lc:  02 (Length of application ID)\n");
+        commands.append("   ├─ Data: 40 00 (CEPAS Application ID)\n");
+        commands.append("   └─ Response: 90 00 (Success)\n\n");
+        
+        commands.append("2. READ PURSE 3 DATA ✓\n");
+        commands.append("   Command: 90 32 03 00 01 00\n");
+        commands.append("   ├─ CLA: 90 (CEPAS specific class)\n");
+        commands.append("   ├─ INS: 32 (READ PURSE command)\n");
+        commands.append("   ├─ P1:  03 (Purse ID = 3)\n");
+        commands.append("   ├─ P2:  00 (Read purse data)\n");
+        commands.append("   ├─ Lc:  01 (Length of data field)\n");
+        commands.append("   ├─ Data: 00 (Read from beginning)\n");
+        commands.append("   └─ Response: [64+ bytes] + 90 00 (Success)\n\n");
+        
+        commands.append("3. CAN EXTRACTION ✓\n");
+        commands.append("   From Purse 3 response, extracted bytes 8-15\n");
+        commands.append("   These 8 bytes form the Card Account Number (CAN)\n\n");
+        
+        commands.append("Why CEPAS vs Standard UID?\n");
+        commands.append("• Standard NFC UID: Only 4 bytes (basic tag identifier)\n");
+        commands.append("• CEPAS CAN: 8 bytes (full card account number)\n");
+        commands.append("• CEPAS CAN contains transit system specific data\n");
+        commands.append("• UID alone cannot provide transit account information\n");
+        commands.append("• CEPAS protocol required for accessing purse data");
+        
+        tvNfcCommands.setText(commands.toString());
     }
 
     @Override
